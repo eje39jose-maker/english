@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14263f">
+<title>Concurso en clase</title>
+<style>
+:root{--paper:#f3f0e8;--card:#fff;--ink:#14202f;--soft:#586577;--line:#d9d5c8;--navy:#14263f;--navy-ink:#fff;--gold:#c98a0b;--gold-soft:#fbf1d6;--ok:#17704c;--ok-bg:#e0f2e9;--bad:#a3261b;--bad-bg:#fde8e6;
+  --oA:#2459c9;--oB:#c25e07;--oC:#7340c8;--oD:#0b7f72}
+@media (prefers-color-scheme:dark){:root{--paper:#0e1520;--card:#162030;--ink:#eef2f7;--soft:#9fb0c4;--line:#2a374a;--navy:#e9eef6;--navy-ink:#0e1520;--gold:#f0b441;--gold-soft:#33290f;--ok:#6ed3a5;--ok-bg:#12352a;--bad:#ff9b8f;--bad-bg:#3a1714;
+  --oA:#3d73e6;--oB:#d9741c;--oC:#8b5ce0;--oD:#14a08f}}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.35;-webkit-text-size-adjust:100%;min-height:100dvh;display:flex;flex-direction:column}
+button,input{font:inherit;color:inherit}button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:disabled{opacity:.5}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+[hidden]{display:none!important}
+header{display:flex;align-items:center;gap:10px;padding:10px 16px;padding-top:max(10px,env(safe-area-inset-top));background:var(--card);border-bottom:2px solid var(--navy)}
+header b{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+header span{font-weight:800;font-variant-numeric:tabular-nums}
+main{flex:1;display:flex;flex-direction:column;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom));max-width:620px;width:100%;margin:0 auto}
+h1{margin:8px 0 4px;font-size:1.6rem}
+.sub{margin:0 0 18px;color:var(--soft)}
+label{display:block;font-weight:700;margin:14px 0 6px}
+input{width:100%;border:2px solid var(--line);background:var(--card);border-radius:12px;padding:14px;font-size:1.25rem}
+input:focus{border-color:var(--navy);outline:none}
+#codigo{letter-spacing:.2em;font-weight:800;font-variant-numeric:tabular-nums}
+.go{width:100%;border:0;background:var(--gold);color:#1b1300;font-weight:800;border-radius:14px;padding:16px;font-size:1.15rem;margin-top:20px}
+.ghost{border:1px solid var(--navy);background:transparent;font-weight:700;border-radius:12px;padding:12px 16px;margin-top:16px}
+.msg{color:var(--soft);margin:12px 0 0}.msg.error{color:var(--bad);font-weight:600}
+.centro{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:10px}
+.grande{font-size:1.6rem;font-weight:800;margin:0}
+.icono{font-size:3.4rem;line-height:1}
+.num{color:var(--soft);font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:.85rem}
+.enun{font-size:1.25rem;font-weight:800;margin:6px 0 2px;overflow-wrap:anywhere}
+.pista{color:var(--soft);font-weight:600;margin:0 0 8px}
+.tiempo{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin:10px 0 14px}
+.tiempo i{display:block;height:100%;background:var(--navy);width:100%}
+.ops{display:grid;gap:10px;flex:1;align-content:start}
+.op{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;border:0;border-radius:16px;padding:12px 14px;color:#fff;font-weight:700;font-size:1.05rem;text-align:left;line-height:1.25;overflow-wrap:anywhere}
+.op .l{flex:none;width:2em;height:2em;border-radius:10px;background:rgba(255,255,255,.22);display:grid;place-items:center;font-weight:900;font-size:1.1rem}
+.op:active{transform:scale(.98)}
+.op0{background:var(--oA)}.op1{background:var(--oB)}.op2{background:var(--oC)}.op3{background:var(--oD)}
+.ok{color:var(--ok)}.mal{color:var(--bad)}
+.caja{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;width:100%}
+.red{position:fixed;left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));background:var(--bad);color:#fff;padding:10px 14px;border-radius:12px;font-weight:700;text-align:center}
+</style>
+</head>
+<body>
+<header id="cab" hidden><b id="cabApodo"></b><span id="cabPuntos"></span></header>
+<main>
+  <section id="vEntrar">
+    <h1>Concurso en clase</h1>
+    <p class="sub">Escriba el código que aparece en la pantalla del aula y un apodo.</p>
+    <form id="fEntrar" autocomplete="off">
+      <label for="codigo">Código de la partida</label>
+      <input id="codigo" inputmode="numeric" pattern="[0-9 ]*" maxlength="7" placeholder="000 000" required>
+      <label for="apodo">Apodo</label>
+      <input id="apodo" maxlength="20" placeholder="Cómo quiere aparecer en la pantalla" required>
+      <button class="go" id="bEntrar" type="submit">Entrar</button>
+    </form>
+    <p class="msg" id="msgEntrar" role="status"></p>
+    <p class="msg">No se guarda ningún dato personal: solo el apodo y las respuestas, que se borran al terminar la partida.</p>
+  </section>
+  <section id="vJuego" class="centro" hidden></section>
+</main>
+<div class="red" id="red" hidden role="status">Sin conexión. Reintentando…</div>
+<script>
+/* Conexión del concurso con Firebase (Realtime Database por REST, sin librerías).
+   build.py y el gestor la incrustan en concurso-<grupo>.html (profesor) y en concurso.html (alumnado).
+   - Sesión anónima de Firebase Authentication: cada navegador recibe un identificador (uid) que se guarda en
+     localStorage, así quien recarga la página sigue siendo el mismo jugador (o el mismo anfitrión).
+   - leer/poner/actualizar/borrar: GET, PUT, PATCH y DELETE de una ruta. Se envían como POST con
+     x-http-method-override (sin petición previa CORS); si el servidor no lo admite, se usa el método real.
+   - escuchar(ruta, alCambiar, alConectar): mantiene una copia local del valor de la ruta con un EventSource
+     (eventos put/patch) y la entrega entera en cada cambio. Se reconecta solo y renueva la sesión al caducar.
+   - AHORA: marca de tiempo del servidor ({".sv":"timestamp"}). */
+function crearRed(C) {
+  "use strict";
+  const BD = String(C.databaseURL || "").replace(/\/+$/, "");
+  const AUTH = C.authURL || "https://identitytoolkit.googleapis.com/v1/accounts:signUp";
+  const TOKEN = C.tokenURL || "https://securetoken.googleapis.com/v1/token";
+  const CLAVE = "concurso-sesion-v1";
+  let ses = null, pidiendo = null, override = true;
+
+  const leeSesion = () => { try { return JSON.parse(localStorage.getItem(CLAVE)); } catch (e) { return null; } };
+  const guardaSesion = () => { try { localStorage.setItem(CLAVE, JSON.stringify(ses)); } catch (e) {} };
+
+  async function pideToken(url, opciones, campos) {
+    let r;
+    try { r = await fetch(url + (url.includes("?") ? "&" : "?") + "key=" + encodeURIComponent(C.apiKey || ""), opciones); }
+    catch (e) { const x = new Error("Sin conexión a internet."); x.red = true; throw x; }
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      const e = new Error("No se ha podido iniciar la sesión (" + ((j.error && (j.error.message || j.error)) || r.status) + ").");
+      e.status = r.status; throw e;
+    }
+    return { uid: j[campos[0]], idToken: j[campos[1]], refreshToken: j[campos[2]],
+             caduca: Date.now() + (Number(j[campos[3]]) || 3600) * 1000 };
+  }
+  async function renueva() {
+    const previa = ses || leeSesion();
+    if (previa && previa.refreshToken) {
+      try {
+        return await pideToken(TOKEN, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: "grant_type=refresh_token&refresh_token=" + encodeURIComponent(previa.refreshToken) },
+          ["user_id", "id_token", "refresh_token", "expires_in"]);
+      } catch (e) { if (e.red) throw e; }  // sin red no se crea otra identidad; si la anterior no vale, sí
+    }
+    return pideToken(AUTH, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ returnSecureToken: true }) },
+      ["localId", "idToken", "refreshToken", "expiresIn"]);
+  }
+  async function sesion(forzar) {
+    if (!ses) ses = leeSesion();
+    if (!forzar && ses && ses.idToken && ses.caduca > Date.now() + 120000) return ses;
+    if (!pidiendo) pidiendo = renueva().then(s => { ses = s; guardaSesion(); return s; }).finally(() => { pidiendo = null; });
+    return pidiendo;
+  }
+  async function direccion(ruta) {
+    const s = await sesion();
+    return BD + "/" + ruta + ".json?auth=" + encodeURIComponent(s.idToken);
+  }
+
+  async function pedir(metodo, ruta, valor, repetida) {
+    let url = await direccion(ruta), opciones = {};
+    if (metodo !== "GET") {
+      const cuerpo = valor === undefined ? "" : JSON.stringify(valor);
+      if (override) { url += "&x-http-method-override=" + metodo; opciones = { method: "POST", body: cuerpo }; }
+      else opciones = metodo === "DELETE" ? { method: "DELETE" } : { method: metodo, headers: { "Content-Type": "application/json" }, body: cuerpo };
+    }
+    let r;
+    try { r = await fetch(url, opciones); }
+    catch (e) { const x = new Error("Sin conexión a internet."); x.red = true; throw x; }
+    const j = await r.json().catch(() => null);
+    if (r.ok) return j;
+    const msg = String((j && j.error) || ("HTTP " + r.status));
+    if (!repetida && /expired|invalid.*token|credential/i.test(msg)) { await sesion(true); return pedir(metodo, ruta, valor, true); }
+    if (!repetida && override && metodo !== "GET" && (r.status === 405 || /method|override/i.test(msg))) {
+      override = false; return pedir(metodo, ruta, valor, true);
+    }
+    const e = new Error(msg); e.status = r.status;
+    e.denegado = r.status === 401 || r.status === 403 || /permission/i.test(msg);
+    throw e;
+  }
+
+  /* copia local: aplica un evento put/patch en la ruta indicada ("/", "/a/b") */
+  function aplica(raiz, ruta, dato) {
+    const p = ruta.split("/").filter(Boolean);
+    if (!p.length) return dato === undefined ? null : dato;
+    const copia = raiz && typeof raiz === "object" ? Object.assign({}, raiz) : {};
+    const k = p[0], resto = aplica(copia[k], "/" + p.slice(1).join("/"), dato);
+    if (resto === null || resto === undefined) delete copia[k]; else copia[k] = resto;
+    return Object.keys(copia).length ? copia : null;
+  }
+
+  function escuchar(ruta, alCambiar, alConectar) {
+    let es = null, valor = null, cerrado = false, fallos = 0, temporizador = null;
+    const avisa = ok => { try { alConectar && alConectar(ok); } catch (e) {} };
+    const cierraES = () => { if (es) { es.close(); es = null; } };
+    const programa = () => {
+      if (cerrado || temporizador) return;
+      temporizador = setTimeout(() => { temporizador = null; abre(); }, Math.min(15000, 800 * Math.pow(2, fallos++)));
+    };
+    async function abre() {
+      if (cerrado) return;
+      cierraES();
+      try { es = new EventSource(await direccion(ruta)); } catch (e) { avisa(false); programa(); return; }
+      const evento = parche => ev => {
+        let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+        if (!m || typeof m.path !== "string") return;
+        if (parche) Object.keys(m.data || {}).forEach(k => { valor = aplica(valor, m.path.replace(/\/$/, "") + "/" + k, m.data[k]); });
+        else valor = aplica(valor, m.path, m.data);
+        fallos = 0; avisa(true);
+        try { alCambiar(valor); } catch (e) { console.error(e); }
+      };
+      es.addEventListener("put", evento(false));
+      es.addEventListener("patch", evento(true));
+      es.addEventListener("keep-alive", () => avisa(true));
+      es.addEventListener("cancel", () => { cierraES(); avisa(false); programa(); });
+      es.addEventListener("auth_revoked", () => { cierraES(); sesion(true).then(abre, () => { avisa(false); programa(); }); });
+      es.onerror = () => {
+        avisa(false);
+        // CLOSED: el navegador ya no reintenta (p. ej. sesión caducada) -> se reabre con una sesión renovada
+        if (es && es.readyState === 2) { cierraES(); if (ses) ses.caduca = 0; programa(); }
+      };
+    }
+    abre();
+    return { cerrar() { cerrado = true; clearTimeout(temporizador); cierraES(); }, valor: () => valor };
+  }
+
+  return {
+    sesion, uid: () => (ses && ses.uid) || null, AHORA: { ".sv": "timestamp" }, escuchar,
+    leer: r => pedir("GET", r), poner: (r, v) => pedir("PUT", r, v), actualizar: (r, v) => pedir("PATCH", r, v),
+    borrar: r => pedir("DELETE", r)
+  };
+}
+
+</script>
+<script>
+"use strict";
+const CONFIG = {"apiKey":"AIzaSyBfcI2S7kNC75bAV5dEGo_Vjxi2MORin8I","databaseURL":"https://juego-enp-default-rtdb.europe-west1.firebasedatabase.app","urlAlumno":""};
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const LISTO = !!(CONFIG.apiKey && CONFIG.databaseURL);
+const RED = LISTO ? crearRed(CONFIG) : null;
+const LETRAS = ["A", "B", "C", "D"];
+const TIPO = { traduccion: "Elija la traducción correcta", inversa: "¿Qué significa?", hueco: "Elija la palabra que falta", escuchar: "Elija la frase que ha oído" };
+const K = "concurso-alumno-v1";
+let yo = null, pub = null, escucha = null, reloj = null, cuenta = { id: null, t0: 0 }, respondidas = {}, avisoRed = null, bloqueo = null;
+const lee = (k, def) => { try { return JSON.parse(localStorage.getItem(k)) || def; } catch (e) { return def; } };
+const graba = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const ruta = r => "partidas/" + yo.codigo + "/" + r;
+
+function msg(t, error) { $("#msgEntrar").textContent = t; $("#msgEntrar").classList.toggle("error", !!error); }
+function vista(juego) { $("#vEntrar").hidden = juego; $("#vJuego").hidden = !juego; $("#cab").hidden = !juego; }
+
+async function entrar(codigo, apodo, silencioso) {
+  if (!LISTO) { msg("El concurso todavía no está disponible.", true); return; }
+  codigo = String(codigo).replace(/\D/g, ""); apodo = String(apodo).replace(/\s+/g, " ").trim().slice(0, 20);
+  if (codigo.length !== 6) { msg("El código tiene 6 cifras.", true); return; }
+  if (!apodo) { msg("Escriba un apodo.", true); return; }
+  $("#bEntrar").disabled = true; msg("Entrando…");
+  try {
+    const s = await RED.sesion();
+    const p = await RED.leer("partidas/" + codigo + "/publico");
+    if (!p) throw new Error("No hay ninguna partida con ese código. Compruebe el número de la pantalla.");
+    if (p.expulsados && p.expulsados[s.uid]) throw new Error("No puede entrar en esta partida.");
+    if (p.estado && p.estado.fase === "final") throw new Error("Esa partida ya ha terminado.");
+    await RED.poner("partidas/" + codigo + "/jugadores/" + s.uid, { apodo, unido: RED.AHORA });
+    yo = { codigo, apodo, uid: s.uid };
+    graba(K, { codigo, apodo });
+    respondidas = lee(K + "-" + codigo, {});
+    pub = p; vista(true); pinta(); msg("");
+    if (escucha) escucha.cerrar();
+    escucha = RED.escuchar("partidas/" + codigo + "/publico", v => { pub = v; pinta(); }, ok => {
+      clearTimeout(avisoRed);
+      if (ok) $("#red").hidden = true; else avisoRed = setTimeout(() => { $("#red").hidden = false; }, 2500);
+    });
+    mantenDespierto();
+  } catch (e) {
+    if (!silencioso) msg(e.denegado ? "No se ha podido entrar en la partida." : e.message, true);
+    else msg("");
+  } finally { $("#bEntrar").disabled = false; }
+}
+async function mantenDespierto() {  // que la pantalla no se apague durante el concurso (si el navegador lo permite)
+  try { if ("wakeLock" in navigator && !bloqueo) { bloqueo = await navigator.wakeLock.request("screen"); bloqueo.addEventListener("release", () => { bloqueo = null; }); } } catch (e) {}
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden && yo) mantenDespierto(); });
+
+function salir(texto, icono) {
+  if (escucha) { escucha.cerrar(); escucha = null; }
+  clearInterval(reloj); $("#red").hidden = true; clearTimeout(avisoRed);
+  try { localStorage.removeItem(K + "-" + (yo && yo.codigo)); } catch (e) {}
+  const g = lee(K, {}); delete g.codigo; graba(K, g);
+  $("#vJuego").innerHTML = '<div class="icono">' + icono + '</div><p class="grande">' + esc(texto) + '</p><button class="ghost" id="bOtra">Entrar en otra partida</button>';
+  $("#bOtra").onclick = () => { yo = null; $("#codigo").value = ""; vista(false); };
+}
+
+function pinta() {
+  if (!yo) return;
+  if (!pub) return salir("La partida ha terminado. ¡Gracias por participar!", "👋");
+  if (pub.expulsados && pub.expulsados[yo.uid]) return salir("El profesor le ha quitado de la partida.", "🚫");
+  const e = pub.estado || {}, mio = (pub.marcador || {})[yo.uid], J = $("#vJuego");
+  $("#cabApodo").textContent = yo.apodo;
+  $("#cabPuntos").textContent = mio ? mio.p + " puntos" : "";
+  if (e.fase !== "pregunta") clearInterval(reloj);
+  const num = e.n ? '<div class="num">Pregunta ' + e.n + " de " + e.total + "</div>" : "";
+  J.className = "centro";
+  if (e.fase === "sala") {
+    J.innerHTML = '<div class="icono">✅</div><p class="grande">¡Ya está dentro!</p><p class="msg">Su apodo aparece en la pantalla del aula. Espere a que empiece el concurso.</p>';
+  } else if (e.fase === "escucha") {
+    J.innerHTML = num + '<div class="icono">🔊</div><p class="grande">Escuche con atención</p><p class="msg">Después elegirá la frase que ha oído.</p>';
+  } else if (e.fase === "pregunta") {
+    if (cuenta.id !== e.id) { cuenta = { id: e.id, t0: Date.now() }; if (navigator.vibrate) try { navigator.vibrate(40); } catch (x) {} }
+    const r = respondidas[e.id];
+    if (r === "tarde") J.innerHTML = num + '<div class="icono">⏱️</div><p class="grande">Se acabó el tiempo</p><p class="msg">Su respuesta no ha llegado a tiempo.</p>';
+    else if (r !== undefined) J.innerHTML = num + '<div class="icono">📨</div><p class="grande">Respuesta enviada</p><p class="msg">Ha elegido la <b>' + LETRAS[r] + "</b>. Espere al resultado.</p>";
+    else {
+      const ops = [0, 1, 2, 3].filter(i => e.opciones && e.opciones[i] != null);
+      J.className = "";
+      J.innerHTML = num + '<div class="num" style="color:var(--ink)">' + esc(TIPO[e.tipo] || "") + "</div>" +
+        (e.enunciado ? '<p class="enun">' + esc(e.enunciado) + "</p>" : "") + (e.pista ? '<p class="pista">' + esc(e.pista) + "</p>" : "") +
+        '<div class="tiempo"><i id="barra"></i></div><div class="ops">' +
+        ops.map(i => '<button class="op op' + i + '" data-o="' + i + '"><span class="l">' + LETRAS[i] + "</span><span>" + esc(e.opciones[i]) + "</span></button>").join("") + "</div>";
+      J.querySelectorAll(".op").forEach(b => { b.onclick = () => responder(e.id, +b.dataset.o); });
+      clearInterval(reloj);
+      const lim = (e.limite || 20) * 1000, tic = () => {
+        const f = Math.max(0, 1 - (Date.now() - cuenta.t0) / lim), b = $("#barra");
+        if (b) b.style.width = (f * 100) + "%";
+        if (f <= 0) { clearInterval(reloj); J.querySelectorAll(".op").forEach(x => { x.disabled = true; }); }
+      };
+      tic(); reloj = setInterval(tic, 150);
+    }
+  } else if (e.fase === "resultado") {
+    const correcta = e.opciones ? '<div class="caja">La respuesta correcta era la <b>' + LETRAS[e.correcta] + "</b>: " + esc(e.opciones[e.correcta]) + "</div>" : "";
+    let cab;
+    if (mio && mio.ok) cab = '<div class="icono">🎉</div><p class="grande ok">¡Correcto!</p><p class="msg">+' + mio.g + " puntos</p>";
+    else if (mio && mio.r) cab = '<div class="icono">❌</div><p class="grande mal">No es correcta</p>';
+    else cab = '<div class="icono">⏱️</div><p class="grande">Sin respuesta</p>';
+    J.innerHTML = num + cab + correcta + (mio ? '<p class="msg">Va en el puesto <b>' + mio.s + "</b> de " + (e.participantes || "?") + "</p>" : "");
+  } else if (e.fase === "final") {
+    const med = mio ? ["🥇", "🥈", "🥉"][mio.s - 1] || "🏁" : "🏁";
+    J.innerHTML = '<div class="icono">' + med + '</div><p class="grande">¡Concurso terminado!</p>' +
+      (mio ? '<p class="msg">Ha quedado en el puesto <b>' + mio.s + "</b> de " + (e.participantes || "?") + " con <b>" + mio.p + "</b> puntos.</p>" : "") +
+      '<p class="msg">Mire la pantalla del aula para ver el podio.</p>';
+  } else {
+    J.innerHTML = '<p class="msg">Conectando…</p>';
+  }
+}
+
+async function responder(id, o) {
+  if (respondidas[id] !== undefined) return;
+  respondidas[id] = o; graba(K + "-" + yo.codigo, respondidas); pinta();
+  try { await RED.poner(ruta("respuestas/" + id + "/" + yo.uid), { o, t: RED.AHORA }); }
+  catch (e) {
+    if (e.denegado) respondidas[id] = "tarde";
+    else { delete respondidas[id]; alert("No se ha podido enviar la respuesta. Compruebe la conexión e inténtelo otra vez."); }
+    graba(K + "-" + yo.codigo, respondidas); pinta();
+  }
+}
+
+$("#fEntrar").onsubmit = e => { e.preventDefault(); entrar($("#codigo").value, $("#apodo").value); };
+$("#codigo").oninput = e => { const d = e.target.value.replace(/\D/g, "").slice(0, 6); e.target.value = d.length > 3 ? d.slice(0, 3) + " " + d.slice(3) : d; };
+
+/* al abrir: código del enlace (?c=) o el de la última partida (si se recarga la página, se vuelve a entrar sola) */
+(function inicio() {
+  const g = lee(K, {}), c = (new URLSearchParams(location.search).get("c") || "").replace(/\D/g, "");
+  if (g.apodo) $("#apodo").value = g.apodo;
+  if (c) { $("#codigo").value = c; $("#codigo").dispatchEvent(new Event("input")); }
+  if (!LISTO) { msg("El concurso todavía no está disponible.", true); $("#bEntrar").disabled = true; return; }
+  const codigo = c || g.codigo;
+  if (codigo && g.codigo === codigo && g.apodo) entrar(codigo, g.apodo, true);
+  else if (c) $("#apodo").focus();
+})();
+</script>
+</body>
+</html>
