@@ -45,6 +45,14 @@ input:focus{border-color:var(--navy);outline:none}
 .op0{background:var(--oA)}.op1{background:var(--oB)}.op2{background:var(--oC)}.op3{background:var(--oD)}
 .ok{color:var(--ok)}.mal{color:var(--bad)}
 .caja{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;width:100%}
+.clasif{margin-top:14px;text-align:left}
+.clasif h3{margin:0 0 8px;font-size:.9rem;text-transform:uppercase;letter-spacing:.05em;color:var(--soft)}
+.clasif ol{list-style:none;margin:0;padding:0}
+.clasif li{display:flex;gap:10px;align-items:baseline;padding:5px 6px;border-radius:8px}
+.clasif li.yo{background:var(--ok-bg,rgba(46,160,67,.15));font-weight:800}
+.clasif .pos{width:2.2em;font-weight:900}
+.clasif .ap{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.clasif .pt{font-weight:800;font-variant-numeric:tabular-nums}
 .red{position:fixed;left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));background:var(--bad);color:#fff;padding:10px 14px;border-radius:12px;font-weight:700;text-align:center}
 .qrb{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;border:2px solid var(--navy);background:var(--card);color:var(--ink);font-weight:800;border-radius:14px;padding:14px;font-size:1.1rem}
 .o{display:flex;align-items:center;gap:10px;color:var(--soft);font-size:.9rem;margin:16px 0 0}.o::before,.o::after{content:"";flex:1;border-top:1px solid var(--line)}
@@ -10362,7 +10370,7 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;"
 const LISTO = !!(CONFIG.apiKey && CONFIG.databaseURL);
 const RED = LISTO ? crearRed(CONFIG) : null;
 const LETRAS = ["A", "B", "C", "D"];
-const TIPO = { traduccion: "Elija la traducción correcta", inversa: "¿Qué significa?", hueco: "Elija la palabra que falta", escuchar: "Elija la frase que ha oído" };
+const TIPO = { traduccion: "Elija la traducción correcta", inversa: "¿Qué significa?", hueco: "Elija la palabra que falta", escuchar: "Elija la frase que ha oído", ortografia: "¿Cuál está bien escrita?" };
 const K = "concurso-alumno-v1";
 let yo = null, pub = null, escucha = null, reloj = null, cuenta = { id: null, t0: 0 }, respondidas = {}, avisoRed = null, bloqueo = null, escaneo = null;
 const lee = (k, def) => { try { return JSON.parse(localStorage.getItem(k)) || def; } catch (e) { return def; } };
@@ -10540,7 +10548,7 @@ function pinta() {
       tic(); reloj = setInterval(tic, 150);
     }
   } else if (e.fase === "resultado") {
-    const correcta = e.opciones ? '<div class="caja">La respuesta correcta era la <b>' + LETRAS[e.correcta] + "</b>: " + esc(e.opciones[e.correcta]) + "</div>" : "";
+    const correcta = e.opciones ? '<div class="caja">La respuesta correcta era la <b>' + LETRAS[e.correcta] + "</b>: " + esc(e.opciones[e.correcta]) + (e.bien ? "<br>Bien escrita: <b>" + esc(e.bien) + "</b>" : "") + "</div>" : "";
     let cab;
     if (mio && mio.ok) cab = '<div class="icono">🎉</div><p class="grande ok">¡Correcto!</p><p class="msg">+' + mio.g + " puntos</p>";
     else if (mio && mio.r) cab = '<div class="icono">❌</div><p class="grande mal">No es correcta</p>';
@@ -10550,11 +10558,20 @@ function pinta() {
     const med = mio ? ["🥇", "🥈", "🥉"][mio.s - 1] || "🏁" : "🏁";
     J.innerHTML = '<div class="icono">' + med + '</div><p class="grande">¡Concurso terminado!</p>' +
       (mio ? '<p class="msg">Ha quedado en el puesto <b>' + mio.s + "</b> de " + (e.participantes || "?") + " con <b>" + mio.p + "</b> puntos.</p>" : "") +
-      '<p class="msg">Mire la pantalla del aula para ver el podio.</p>' + botonesOtra();
+      clasificacion(pub.marcador || {}) + botonesOtra();
     activaOtra();
   } else {
     J.innerHTML = '<p class="msg">Conectando…</p>';
   }
+}
+
+// Clasificación final completa (todos los participantes por puesto; la fila propia, resaltada)
+function clasificacion(marcador) {
+  const lista = Object.entries(marcador).sort((a, b) => (a[1].s - b[1].s) || (b[1].p - a[1].p));
+  if (!lista.length) return "";
+  return '<div class="caja clasif"><h3>Clasificación final</h3><ol>' + lista.map(([u, m]) =>
+    '<li' + (u === yo.uid ? ' class="yo"' : "") + '><span class="pos">' + m.s + '.</span><span class="ap">' + esc(m.a) +
+    '</span><span class="pt">' + m.p + "</span></li>").join("") + "</ol></div>";
 }
 
 async function responder(id, o) {
