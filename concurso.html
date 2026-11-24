@@ -46,6 +46,17 @@ input:focus{border-color:var(--navy);outline:none}
 .ok{color:var(--ok)}.mal{color:var(--bad)}
 .caja{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;width:100%}
 .clasif{margin-top:14px;text-align:left}
+#cajaEq{margin-top:4px}.eqs{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:6px}
+.eqs button{font:inherit;font-weight:700;padding:12px 10px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.eqs button[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px var(--ink) inset}
+.x2{color:#c98a0b}.latido{animation:latidoM 1s ease-in-out infinite}@keyframes latidoM{50%{transform:scale(1.25)}}
+.racha{color:#d9480f;font-weight:800;margin:6px 0 0}
+.repaso{margin-top:14px;text-align:left}.repaso summary{font-weight:800;cursor:pointer}
+.fallo{border-top:1px solid var(--line);padding:10px 0 4px}.fallo:first-of-type{border-top:0}
+.fallo .fn{font-size:.8rem;color:var(--soft);font-weight:700}.fallo .ft{font-weight:700;margin:2px 0 4px}
+.fallo .fm{color:var(--bad)}.fallo .fok{color:var(--ok);font-weight:700}.fallo .ff{font-size:.85rem;color:var(--soft)}
+.eqfin{margin-top:14px}.eql{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px;font-weight:700}
+@media (prefers-reduced-motion:reduce){.latido{animation:none}}
 .clasif h3{margin:0 0 8px;font-size:.9rem;text-transform:uppercase;letter-spacing:.05em;color:var(--soft)}
 .clasif ol{list-style:none;margin:0;padding:0}
 .clasif li{display:flex;gap:10px;align-items:baseline;padding:5px 6px;border-radius:8px}
@@ -74,7 +85,7 @@ input:focus{border-color:var(--navy);outline:none}
 </style>
 </head>
 <body>
-<header id="cab" hidden><span class="yo" id="cabAvatar"></span><b id="cabApodo"></b><span id="cabPuntos"></span></header>
+<header id="cab" hidden><span class="yo" id="cabAvatar"></span><span id="cabEq"></span><b id="cabApodo"></b><span id="cabPuntos"></span></header>
 <main>
   <section id="vEntrar">
     <h1>Concurso en clase</h1>
@@ -88,6 +99,7 @@ input:focus{border-color:var(--navy);outline:none}
       <input id="apodo" maxlength="20" placeholder="Cómo quiere aparecer en la pantalla" required>
       <label id="avTit">Avatar</label>
       <div class="avs" id="avs" role="radiogroup" aria-labelledby="avTit"></div>
+      <div id="cajaEq" hidden><label id="eqTit">Equipo</label><div class="eqs" id="eqs" role="radiogroup" aria-labelledby="eqTit"></div></div>
       <button class="go" id="bEntrar" type="submit">Entrar</button>
     </form>
     <p class="msg" id="msgEntrar" role="status"></p>
@@ -115,6 +127,8 @@ input:focus{border-color:var(--navy);outline:none}
    Se pueden añadir al final, pero no cambiar de orden (las reglas admiten números de 0 a 99). */
 const AVATARES = ["🐶", "🐱", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🐧", "🦉", "🐢",
   "🐙", "🦄", "🐲", "🦖", "🐳", "🦀", "🐝", "🦋", "🦔", "🦦", "🦩", "👽", "🤖", "👻", "🤠", "😎"];
+/* EQUIPOS (modo equipos): en la base de datos se guarda solo el número (jugadores/<uid>/eq; las reglas admiten 0 a 9). */
+const EQUIPOS = [{ n: "Rojo", e: "🔴" }, { n: "Azul", e: "🔵" }, { n: "Verde", e: "🟢" }, { n: "Amarillo", e: "🟡" }, { n: "Morado", e: "🟣" }, { n: "Naranja", e: "🟠" }];
 /* Cada avatar tiene su movimiento (7 distintos) y empieza en un momento diferente, para que no se muevan todos a la vez.
    avatarHTML(n, clases): "quieto" lo deja sin movimiento. Respeta la opción del sistema «reducir movimiento». */
 function avatarHTML(n, clases) {
@@ -10381,6 +10395,7 @@ const LETRAS = ["A", "B", "C", "D"];
 const TIPO = { traduccion: "Elija la traducción correcta", inversa: "¿Qué significa?", hueco: "Elija la palabra que falta", escuchar: "Elija la frase que ha oído", ortografia: "¿Cuál está bien escrita?",
   respuesta: "¿Qué le contestaría?", ordenar: "Elija el orden correcto", oirtraducir: "¿Qué significa lo que ha oído?", fallo: "¿Qué palabra está mal escrita?" };
 const K = "concurso-alumno-v1";
+let equipoElegido = null;   // equipo pulsado en el formulario (partidas con equipos)
 let yo = null, pub = null, escucha = null, reloj = null, cuenta = { id: null, t0: 0 }, respondidas = {}, avisoRed = null, bloqueo = null, escaneo = null;
 const lee = (k, def) => { try { return JSON.parse(localStorage.getItem(k)) || def; } catch (e) { return def; } };
 const graba = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
@@ -10388,6 +10403,53 @@ const ruta = r => "partidas/" + yo.codigo + "/" + r;
 
 function msg(t, error) { $("#msgEntrar").textContent = t; $("#msgEntrar").classList.toggle("error", !!error); }
 function vista(juego) { $("#vEntrar").hidden = juego; $("#vJuego").hidden = !juego; $("#cab").hidden = !juego; }
+
+/* ---- equipo (partidas con equipos) ---- */
+function pintaEquipos(n) {
+  $("#cajaEq").hidden = false;
+  $("#eqs").innerHTML = EQUIPOS.slice(0, n).map((q, i) => '<button type="button" role="radio" data-eq="' + i + '" aria-pressed="' + (i === equipoElegido) + '" aria-checked="' + (i === equipoElegido) + '">' + q.e + " " + esc(q.n) + "</button>").join("");
+}
+$("#eqs").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  equipoElegido = +b.dataset.eq;
+  $("#eqs").querySelectorAll("button").forEach(x => { x.setAttribute("aria-pressed", x === b); x.setAttribute("aria-checked", x === b); });
+  msg("");
+};
+const mediaEquipos = marcador => {
+  const t = {};
+  Object.values(marcador || {}).forEach(m => { if (m.e != null) { const x = t[m.e] || (t[m.e] = { e: m.e, suma: 0, gente: 0 }); x.suma += m.p; x.gente++; } });
+  return Object.values(t).map(x => Object.assign(x, { media: Math.round(x.suma / x.gente) })).sort((a, b) => b.media - a.media);
+};
+
+/* ---- repaso: cada móvil apunta sus fallos (con la respuesta correcta) para verlos al final ---- */
+const claveRep = () => K + "-repaso-" + yo.codigo;
+function apuntaPregunta(e) {   // durante la pregunta: el enunciado (en el resultado ya no viene)
+  const rep = lee(claveRep(), { preg: {}, res: {} });
+  if (rep.preg[e.id]) return;
+  rep.preg[e.id] = { tipo: e.tipo, enunciado: e.enunciado || "" };
+  graba(claveRep(), rep);
+}
+function apuntaResultado(e, mio) {
+  const rep = lee(claveRep(), { preg: {}, res: {} });
+  if (rep.res[e.id] || !e.opciones) return;
+  const r = respondidas[e.id], pr = rep.preg[e.id] || {};
+  rep.res[e.id] = { n: e.n, tipo: e.tipo, ok: !!(mio && mio.ok), enunciado: pr.enunciado || "", frase: e.frase || "",
+    correcta: e.opciones[e.correcta], mia: typeof r === "number" ? e.opciones[r] : null };
+  graba(claveRep(), rep);
+}
+function repasoHTML() {
+  const res = Object.values(lee(claveRep(), { preg: {}, res: {} }).res).sort((a, b) => a.n - b.n);
+  if (!res.length) return "";
+  const mal = res.filter(x => !x.ok);
+  if (!mal.length) return '<div class="caja repaso"><b>¡Ningún fallo!</b> 👏 Ha acertado todas las preguntas que ha visto.</div>';
+  return '<details class="caja repaso" open><summary>Sus fallos (' + mal.length + " de " + res.length + ") para repasar</summary>" + mal.map(x => {
+    const oir = x.tipo === "escuchar" || x.tipo === "oirtraducir", texto = oir ? "🔊 " + x.frase : (x.enunciado || x.frase);
+    return '<div class="fallo"><div class="fn">Pregunta ' + x.n + " · " + esc(TIPO[x.tipo] || "") + '</div><div class="ft">' + esc(texto) + "</div>" +
+      (x.mia != null ? '<div class="fm">✗ ' + esc(x.mia) + "</div>" : '<div class="fm">⏱️ Sin respuesta</div>') +
+      '<div class="fok">✓ ' + esc(x.correcta) + "</div>" +
+      (x.frase && x.frase !== x.correcta && !oir && x.tipo !== "inversa" && x.tipo !== "respuesta" ? '<div class="ff">' + esc(x.frase) + "</div>" : "") + "</div>";
+  }).join("") + "</details>";
+}
 
 /* ---- avatar: se elige al entrar y se recuerda para la próxima partida ---- */
 let avatar = lee(K, {}).av;
@@ -10420,11 +10482,27 @@ async function entrar(codigo, apodo, silencioso) {
         msg("Elija otro apodo, por favor: «" + apodo + "» ya lo usa otra persona.", true); $("#apodo").focus(); $("#apodo").select(); return;
       }
     }
+    // partida con equipos: hay que elegir uno (se recuerda si vuelve a entrar en la misma partida)
+    const nEq = Math.min(p.equipos || 0, EQUIPOS.length), recordado = lee(K, {}).codigo === codigo ? lee(K, {}).eq : null;
+    let eq = null;
+    if (nEq) {
+      eq = equipoElegido != null ? equipoElegido : recordado;
+      if (typeof eq !== "number" || !(eq >= 0 && eq < nEq)) {   // (ojo: null >= 0 es verdadero en JavaScript)
+        if (silencioso) throw new Error("");
+        pintaEquipos(nEq); msg("Elija su equipo y pulse «Entrar».", false); return;
+      }
+    }
     const jugador = "partidas/" + codigo + "/jugadores/" + s.uid;
-    try { await RED.poner(jugador, { apodo, unido: RED.AHORA, av: avatar }); }
-    catch (e) { if (!e.denegado) throw e; await RED.poner(jugador, { apodo, unido: RED.AHORA }); }  // reglas antiguas, sin avatar
-    yo = { codigo, apodo, uid: s.uid, av: avatar };
-    graba(K, { codigo, apodo, av: avatar });
+    // con reglas de Firebase antiguas, sin equipo (el profesor lo asigna) y, si hace falta, sin avatar
+    const intentos = [Object.assign({ apodo, unido: RED.AHORA, av: avatar }, eq != null ? { eq } : {}), { apodo, unido: RED.AHORA, av: avatar }, { apodo, unido: RED.AHORA }];
+    for (let k = 0; k < intentos.length; k++) {
+      if (k === 1 && eq == null) continue;
+      try { await RED.poner(jugador, intentos[k]); break; }
+      catch (e) { if (!e.denegado || k === intentos.length - 1) throw e; }
+    }
+    yo = { codigo, apodo, uid: s.uid, av: avatar, eq };
+    graba(K, Object.assign({ codigo, apodo, av: avatar }, eq != null ? { eq } : {}));
+    $("#cajaEq").hidden = true;
     try { history.replaceState(null, "", location.pathname + "?c=" + codigo); } catch (e) {}  // si recarga, vuelve a esta partida
     respondidas = lee(K + "-" + codigo, {});
     pub = p; vista(true); pinta(); msg("");
@@ -10484,7 +10562,7 @@ function activaOtra() {
     if (escucha) { escucha.cerrar(); escucha = null; }
     clearInterval(reloj); $("#red").hidden = true; clearTimeout(avisoRed);
     const g = lee(K, {}); delete g.codigo; graba(K, g);
-    yo = null; pub = null; $("#codigo").value = ""; msg(""); pintaAvatares(); vista(false);
+    yo = null; pub = null; equipoElegido = null; $("#cajaEq").hidden = true; $("#codigo").value = ""; msg(""); pintaAvatares(); vista(false);
     try { history.replaceState(null, "", location.pathname); } catch (e) {}
     if (escanear) abrirEscaner(); else $("#codigo").focus();
   };
@@ -10560,17 +10638,22 @@ function pinta() {
   if (pub.expulsados && pub.expulsados[yo.uid]) return salir("El profesor le ha quitado de la partida.", "🚫");
   const e = pub.estado || {}, mio = (pub.marcador || {})[yo.uid], J = $("#vJuego");
   $("#cabApodo").textContent = yo.apodo;
+  const miEq = mio && mio.e != null ? mio.e : yo.eq;
+  $("#cabEq").textContent = miEq != null && EQUIPOS[miEq] ? EQUIPOS[miEq].e : "";
   if ($("#cabAvatar").dataset.av !== String(yo.av)) { $("#cabAvatar").innerHTML = avatarHTML(yo.av); $("#cabAvatar").dataset.av = String(yo.av); }  // sin reiniciar el movimiento
   $("#cabPuntos").textContent = mio ? mio.p + " puntos" : "";
   if (e.fase !== "pregunta") clearInterval(reloj);
-  const num = e.n ? '<div class="num">Pregunta ' + e.n + " de " + e.total + "</div>" : "";
+  const num = e.n ? '<div class="num">Pregunta ' + e.n + " de " + e.total + (e.doble ? ' · <b class="x2">⭐ vale el doble</b>' : "") + "</div>" : "";
   J.className = "centro";
   if (e.fase === "sala") {
     J.innerHTML = '<div class="icono">' + (AVATARES[yo.av] ? avatarHTML(yo.av, "enorme") : "✅") + '</div><p class="grande">¡Ya está dentro!</p><p class="msg">Su apodo aparece en la pantalla del aula. Espere a que empiece el concurso.</p>';
+  } else if (e.fase === "doble") {
+    J.innerHTML = num + '<div class="icono latido">⭐</div><p class="grande">¡Última pregunta!</p><p class="grande x2">Vale el doble</p>';
   } else if (e.fase === "escucha") {
     J.innerHTML = num + '<div class="icono">🔊</div><p class="grande">Escuche con atención</p><p class="msg">' + (e.tipo === "oirtraducir" ? "Después elegirá lo que significa." : "Después elegirá la frase que ha oído.") + "</p>";
   } else if (e.fase === "pregunta") {
     if (cuenta.id !== e.id) { cuenta = { id: e.id, t0: Date.now() }; if (navigator.vibrate) try { navigator.vibrate(40); } catch (x) {} }
+    apuntaPregunta(e);
     const r = respondidas[e.id];
     if (r === "tarde") J.innerHTML = num + '<div class="icono">⏱️</div><p class="grande">Se acabó el tiempo</p><p class="msg">Su respuesta no ha llegado a tiempo.</p>';
     else if (r !== undefined) J.innerHTML = num + '<div class="icono">📨</div><p class="grande">Respuesta enviada</p><p class="msg">Ha elegido la <b>' + LETRAS[r] + "</b>. Espere al resultado.</p>";
@@ -10593,19 +10676,32 @@ function pinta() {
   } else if (e.fase === "resultado") {
     const correcta = e.opciones ? '<div class="caja">La respuesta correcta era la <b>' + LETRAS[e.correcta] + "</b>: " + esc(e.opciones[e.correcta]) + (e.bien ? "<br>Bien escrita: <b>" + esc(e.bien) + "</b>" : "") + "</div>" : "";
     let cab;
-    if (mio && mio.ok) cab = '<div class="icono">🎉</div><p class="grande ok">¡Correcto!</p><p class="msg">+' + mio.g + " puntos</p>";
+    apuntaResultado(e, mio);
+    if (mio && mio.ok) cab = '<div class="icono">🎉</div><p class="grande ok">¡Correcto!</p><p class="msg">+' + mio.g + " puntos" + (e.doble ? " (×2)" : "") + "</p>" +
+      (mio.b ? '<p class="racha">🔥 ' + mio.rc + " seguidas: +" + mio.b + " de racha</p>" : "");
     else if (mio && mio.r) cab = '<div class="icono">❌</div><p class="grande mal">No es correcta</p>';
     else cab = '<div class="icono">⏱️</div><p class="grande">Sin respuesta</p>';
     J.innerHTML = num + cab + correcta + (mio ? '<p class="msg">Va en el puesto <b>' + mio.s + "</b> de " + (e.participantes || "?") + "</p>" : "");
+  } else if (e.fase === "repaso") {
+    J.innerHTML = '<div class="icono">📖</div><p class="grande">Repaso</p><p class="msg">Mire la pantalla del aula: se comentan las preguntas más falladas. Enseguida, el podio.</p>' + repasoHTML();
   } else if (e.fase === "final") {
     const med = mio ? ["🥇", "🥈", "🥉"][mio.s - 1] || "🏁" : "🏁";
     J.innerHTML = '<div class="icono">' + med + '</div><p class="grande">¡Concurso terminado!</p>' +
       (mio ? '<p class="msg">Ha quedado en el puesto <b>' + mio.s + "</b> de " + (e.participantes || "?") + " con <b>" + mio.p + "</b> puntos.</p>" : "") +
-      clasificacion(pub.marcador || {}) + botonesOtra();
+      equipoFinal(pub.marcador, mio) + clasificacion(pub.marcador || {}) + repasoHTML() + botonesOtra();
     activaOtra();
   } else {
     J.innerHTML = '<p class="msg">Conectando…</p>';
   }
+}
+
+// Puesto de su equipo (partidas con equipos)
+function equipoFinal(marcador, mio) {
+  const t = mediaEquipos(marcador);
+  if (!t.length) return "";
+  const k = mio && mio.e != null ? t.findIndex(x => x.e === mio.e) : -1;
+  return '<div class="caja eqfin">' + (k >= 0 ? "Su equipo, " + EQUIPOS[mio.e].e + " <b>" + esc(EQUIPOS[mio.e].n) + "</b>, ha quedado <b>" + (k + 1) + ".º</b>" : "<b>Equipos</b>") +
+    '<div class="eql">' + t.map((x, i) => "<span>" + (i + 1) + ".º " + EQUIPOS[x.e].e + " " + x.media + "</span>").join("") + "</div></div>";
 }
 
 // Clasificación final completa (todos los participantes por puesto; la fila propia, resaltada)
