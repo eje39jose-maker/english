@@ -213,9 +213,12 @@ function crearRed(C) {
   }
 
   function escuchar(ruta, alCambiar, alConectar) {
-    let es = null, valor = null, cerrado = false, fallos = 0, temporizador = null;
-    const avisa = ok => { try { alConectar && alConectar(ok); } catch (e) {} };
+    let es = null, valor = null, cerrado = false, fallos = 0, temporizador = null, ultimo = Date.now();
+    const avisa = ok => { if (ok) ultimo = Date.now(); try { alConectar && alConectar(ok); } catch (e) {} };
     const cierraES = () => { if (es) { es.close(); es = null; } };
+    // Vigilante: Firebase manda una señal («keep-alive») cada 30 s. En los móviles la conexión puede morir sin avisar
+    // (pantalla bloqueada, cambio de aplicación o de red): si pasan 45 s sin noticias, se reabre.
+    const vigia = setInterval(() => { if (!cerrado && Date.now() - ultimo > 45000) { ultimo = Date.now(); abre(); } }, 5000);
     const programa = () => {
       if (cerrado || temporizador) return;
       temporizador = setTimeout(() => { temporizador = null; abre(); }, Math.min(15000, 800 * Math.pow(2, fallos++)));
@@ -244,7 +247,12 @@ function crearRed(C) {
       };
     }
     abre();
-    return { cerrar() { cerrado = true; clearTimeout(temporizador); cierraES(); }, valor: () => valor };
+    return {
+      cerrar() { cerrado = true; clearTimeout(temporizador); clearInterval(vigia); cierraES(); },
+      // reabrir al volver a la página (desbloquear, volver de otra aplicación, recuperar la red): Firebase manda todo al abrir
+      reabrir() { if (cerrado) return; clearTimeout(temporizador); temporizador = null; fallos = 0; ultimo = Date.now(); abre(); },
+      valor: () => valor
+    };
   }
 
   return {
@@ -10399,9 +10407,19 @@ async function entrar(codigo, apodo, silencioso) {
   try {
     const s = await RED.sesion();
     const p = await RED.leer("partidas/" + codigo + "/publico");
-    if (!p) throw new Error("No hay ninguna partida con ese código. Compruebe el número de la pantalla.");
-    if (p.expulsados && p.expulsados[s.uid]) throw new Error("No puede entrar en esta partida.");
-    if (p.estado && p.estado.fase === "final") throw new Error("Esa partida ya ha terminado.");
+    const definitivo = t => Object.assign(new Error(t), { definitivo: true });   // no tiene sentido reintentar
+    if (!p) throw definitivo("No hay ninguna partida con ese código. Compruebe el número de la pantalla.");
+    if (p.expulsados && p.expulsados[s.uid]) throw definitivo("No puede entrar en esta partida.");
+    if (p.estado && p.estado.fase === "final") throw definitivo("Esa partida ya ha terminado.");
+    // ¿ya hay alguien con ese apodo (de otro móvil)? Si es la misma persona, sigue con sus puntos; si no, otro apodo
+    const nA = x => String(x || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
+    const igual = Object.entries(p.marcador || {}).find(([u, m]) => u !== s.uid && nA(m.a) === nA(apodo));
+    if (igual) {
+      if (silencioso) throw new Error("");
+      if (!confirm("En esta partida ya hay alguien con el apodo «" + igual[1].a + "» (" + igual[1].p + " puntos).\n\n¿Es usted? Pulse Aceptar para seguir con sus puntos.\n\nSi no es usted, pulse Cancelar y elija otro apodo.")) {
+        msg("Elija otro apodo, por favor: «" + apodo + "» ya lo usa otra persona.", true); $("#apodo").focus(); $("#apodo").select(); return;
+      }
+    }
     const jugador = "partidas/" + codigo + "/jugadores/" + s.uid;
     try { await RED.poner(jugador, { apodo, unido: RED.AHORA, av: avatar }); }
     catch (e) { if (!e.denegado) throw e; await RED.poner(jugador, { apodo, unido: RED.AHORA }); }  // reglas antiguas, sin avatar
@@ -10417,6 +10435,7 @@ async function entrar(codigo, apodo, silencioso) {
     });
     mantenDespierto();
   } catch (e) {
+    if (e.definitivo) { const g = lee(K, {}); if (g.codigo === codigo) { delete g.codigo; graba(K, g); } }   // olvidar esa partida
     if (!silencioso) msg(e.denegado ? "No se ha podido entrar en la partida." : e.message, true);
     else msg("");
   } finally { $("#bEntrar").disabled = false; }
@@ -10424,7 +10443,30 @@ async function entrar(codigo, apodo, silencioso) {
 async function mantenDespierto() {  // que la pantalla no se apague durante el concurso (si el navegador lo permite)
   try { if ("wakeLock" in navigator && !bloqueo) { bloqueo = await navigator.wakeLock.request("screen"); bloqueo.addEventListener("release", () => { bloqueo = null; }); } } catch (e) {}
 }
-document.addEventListener("visibilitychange", () => { if (!document.hidden && yo) mantenDespierto(); });
+// Al volver a la página (desbloquear el móvil, volver de otra aplicación, botón «atrás», recuperar la red):
+// reconectar enseguida y ponerse al día; si no estaba dentro pero hay una partida recordada, volver a entrar.
+function alVolver() {
+  if (yo && escucha) { escucha.reabrir(); mantenDespierto(); RED.leer("partidas/" + yo.codigo + "/publico").then(v => { if (v && yo) { pub = v; pinta(); } }, () => {}); }
+  else if (!yo) volverAEntrar();
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) alVolver(); });
+window.addEventListener("pageshow", e => { if (e.persisted) alVolver(); });
+window.addEventListener("online", alVolver);
+// Volver a la última partida (al abrir la página o al volver a ella). Si falla (p. ej. sin red un momento), lo reintenta
+// unas veces y deja el código y el apodo puestos para que baste con pulsar «Entrar».
+let reintentos = 0, reintento = null;
+async function volverAEntrar() {
+  const g = lee(K, {});
+  if (!g.codigo || !g.apodo || yo || !LISTO || $("#bEntrar").disabled) return;   // (deshabilitado = ya está entrando)
+  if (!$("#codigo").value) { $("#codigo").value = g.codigo; $("#codigo").dispatchEvent(new Event("input")); }
+  if (!$("#apodo").value) $("#apodo").value = g.apodo;
+  await entrar(g.codigo, g.apodo, true);
+  if (yo) { reintentos = 0; return; }
+  if (!lee(K, {}).codigo) return;   // la partida ya no existe o ha terminado: entrar() lo ha olvidado
+  msg("No se ha podido volver a entrar todavía. Pulse «Entrar» para volver a la partida.");
+  clearTimeout(reintento);
+  if (reintentos++ < 5) reintento = setTimeout(volverAEntrar, 3000);
+}
 
 function salir(texto, icono) {
   if (escucha) { escucha.cerrar(); escucha = null; }
@@ -10598,7 +10640,7 @@ $("#codigo").oninput = e => { const d = e.target.value.replace(/\D/g, "").slice(
   if (c) { $("#codigo").value = c; $("#codigo").dispatchEvent(new Event("input")); }
   if (!LISTO) { msg("El concurso todavía no está disponible.", true); $("#bEntrar").disabled = true; return; }
   const codigo = c || g.codigo;
-  if (codigo && g.codigo === codigo && g.apodo) entrar(codigo, g.apodo, true);
+  if (codigo && g.codigo === codigo && g.apodo) volverAEntrar();
   else if (c) $("#apodo").focus();
 })();
 </script>
