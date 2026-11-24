@@ -10370,7 +10370,8 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;"
 const LISTO = !!(CONFIG.apiKey && CONFIG.databaseURL);
 const RED = LISTO ? crearRed(CONFIG) : null;
 const LETRAS = ["A", "B", "C", "D"];
-const TIPO = { traduccion: "Elija la traducción correcta", inversa: "¿Qué significa?", hueco: "Elija la palabra que falta", escuchar: "Elija la frase que ha oído", ortografia: "¿Cuál está bien escrita?" };
+const TIPO = { traduccion: "Elija la traducción correcta", inversa: "¿Qué significa?", hueco: "Elija la palabra que falta", escuchar: "Elija la frase que ha oído", ortografia: "¿Cuál está bien escrita?",
+  respuesta: "¿Qué le contestaría?", ordenar: "Elija el orden correcto", oirtraducir: "¿Qué significa lo que ha oído?", fallo: "¿Qué palabra está mal escrita?" };
 const K = "concurso-alumno-v1";
 let yo = null, pub = null, escucha = null, reloj = null, cuenta = { id: null, t0: 0 }, respondidas = {}, avisoRed = null, bloqueo = null, escaneo = null;
 const lee = (k, def) => { try { return JSON.parse(localStorage.getItem(k)) || def; } catch (e) { return def; } };
@@ -10525,7 +10526,7 @@ function pinta() {
   if (e.fase === "sala") {
     J.innerHTML = '<div class="icono">' + (AVATARES[yo.av] ? avatarHTML(yo.av, "enorme") : "✅") + '</div><p class="grande">¡Ya está dentro!</p><p class="msg">Su apodo aparece en la pantalla del aula. Espere a que empiece el concurso.</p>';
   } else if (e.fase === "escucha") {
-    J.innerHTML = num + '<div class="icono">🔊</div><p class="grande">Escuche con atención</p><p class="msg">Después elegirá la frase que ha oído.</p>';
+    J.innerHTML = num + '<div class="icono">🔊</div><p class="grande">Escuche con atención</p><p class="msg">' + (e.tipo === "oirtraducir" ? "Después elegirá lo que significa." : "Después elegirá la frase que ha oído.") + "</p>";
   } else if (e.fase === "pregunta") {
     if (cuenta.id !== e.id) { cuenta = { id: e.id, t0: Date.now() }; if (navigator.vibrate) try { navigator.vibrate(40); } catch (x) {} }
     const r = respondidas[e.id];
