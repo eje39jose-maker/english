@@ -86,6 +86,9 @@ input:focus{border-color:var(--navy);outline:none}
 @media (max-width:340px){.avs{grid-template-columns:repeat(5,minmax(0,1fr))}}
 .yo{font-size:2.1rem;line-height:1}
 .enorme{font-size:6.5rem}
+.escribir{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.escribir input{font-size:1.5rem;padding:14px 16px;border-radius:14px;border:2px solid var(--line);background:var(--card);color:var(--ink);text-align:center}
+.escribir input:focus{outline:none;border-color:var(--gold)}.caja s{color:var(--bad,#ff8787)}.caja .ff{color:var(--soft);font-size:.92em}
 .icono .corona{font-size:3.4rem;margin-bottom:.3rem}.ava.mini{font-size:1.15em;vertical-align:-.15em}
 .botones{display:flex;flex-direction:column;gap:10px;width:100%;margin-top:14px}
 .botones .ghost{margin:0}
@@ -10445,7 +10448,7 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;"
 const LISTO = !!(CONFIG.apiKey && CONFIG.databaseURL);
 const RED = LISTO ? crearRed(CONFIG) : null;
 const LETRAS = ["A", "B", "C", "D"];
-const TIPO = { traduccion: "Elija la traducción correcta", inversa: "¿Qué significa?", hueco: "Elija la palabra que falta", escuchar: "Elija la frase que ha oído", ortografia: "¿Cuál está bien escrita?",
+const TIPO = { escribir: "Escriba la palabra que falta", traduccion: "Elija la traducción correcta", inversa: "¿Qué significa?", hueco: "Elija la palabra que falta", escuchar: "Elija la frase que ha oído", ortografia: "¿Cuál está bien escrita?",
   respuesta: "¿Qué le contestaría?", ordenar: "Elija el orden correcto", oirtraducir: "¿Qué significa lo que ha oído?", fallo: "¿Qué palabra está mal escrita?" };
 const K = "concurso-alumno-v1";
 let equipoElegido = null;   // equipo pulsado en el formulario (partidas con equipos)
@@ -10487,7 +10490,7 @@ function apuntaResultado(e, mio) {
   if (rep.res[e.id] || !e.opciones) return;
   const r = respondidas[e.id], pr = rep.preg[e.id] || {};
   rep.res[e.id] = { n: e.n, tipo: e.tipo, ok: !!(mio && mio.ok), enunciado: pr.enunciado || "", frase: e.frase || "",
-    correcta: e.opciones[e.correcta], mia: typeof r === "number" ? e.opciones[r] : null };
+    correcta: e.opciones[e.correcta], mia: e.tipo === "escribir" ? (respondidas["x-" + e.id] || null) : typeof r === "number" ? e.opciones[r] : null };
   graba(claveRep(), rep);
 }
 function repasoHTML() {
@@ -10722,7 +10725,25 @@ function pinta() {
     apuntaPregunta(e);
     const r = respondidas[e.id];
     if (r === "tarde") J.innerHTML = num + '<div class="icono">⏱️</div><p class="grande">Se acabó el tiempo</p><p class="msg">Su respuesta no ha llegado a tiempo.</p>';
-    else if (r !== undefined) J.innerHTML = num + '<div class="icono">📨</div><p class="grande">Respuesta enviada</p><p class="msg">Ha elegido la <b>' + LETRAS[r] + "</b>. Espere al resultado.</p>";
+    else if (r !== undefined) J.innerHTML = num + '<div class="icono">📨</div><p class="grande">Respuesta enviada</p><p class="msg">' +
+      (respondidas["x-" + e.id] != null ? "Ha escrito: <b>" + esc(respondidas["x-" + e.id]) + "</b>" : "Ha elegido la <b>" + LETRAS[r] + "</b>") + ". Espere al resultado.</p>";
+    else if (e.escribir && $("#escr") && $("#escr").dataset.id === e.id) J.className = "";   // ya está escribiendo: no se borra lo escrito
+    else if (e.escribir) {
+      J.className = "";
+      J.innerHTML = num + '<div class="num" style="color:var(--ink)">' + esc(TIPO.escribir) + "</div>" +
+        (e.enunciado ? '<p class="enun">' + esc(e.enunciado) + "</p>" : "") + '<p class="pista">' + (e.pista ? esc(e.pista) + " · " : "") + (e.letras || "?") + " letras</p>" +
+        '<div class="tiempo"><i id="barra"></i></div><form id="fEscr" class="escribir" autocomplete="off"><input id="escr" data-id="' + esc(e.id) + '" maxlength="40" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send" placeholder="Escriba aquí la palabra" aria-label="La palabra que falta">' +
+        '<button class="go" type="submit">Enviar</button></form>';
+      $("#fEscr").onsubmit = ev => { ev.preventDefault(); const t = $("#escr").value.replace(/\s+/g, " ").trim(); if (!t) { $("#escr").focus(); return; } responder(e.id, 0, t.slice(0, 40)); };
+      setTimeout(() => { const i = $("#escr"); if (i) i.focus(); }, 50);
+      clearInterval(reloj);
+      const lim = (e.limite || 20) * 1000, tic = () => {
+        const f = Math.max(0, 1 - (Date.now() - cuenta.t0) / lim), b = $("#barra");
+        if (b) b.style.width = (f * 100) + "%";
+        if (f <= 0) { clearInterval(reloj); J.querySelectorAll("#fEscr input, #fEscr button").forEach(x => { x.disabled = true; }); }
+      };
+      tic(); reloj = setInterval(tic, 150);
+    }
     else {
       const ops = [0, 1, 2, 3].filter(i => e.opciones && e.opciones[i] != null);
       J.className = "";
@@ -10740,7 +10761,10 @@ function pinta() {
       tic(); reloj = setInterval(tic, 150);
     }
   } else if (e.fase === "resultado") {
-    const correcta = e.opciones ? '<div class="caja">La respuesta correcta era la <b>' + LETRAS[e.correcta] + "</b>: " + esc(e.opciones[e.correcta]) + (e.bien ? "<br>Bien escrita: <b>" + esc(e.bien) + "</b>" : "") + "</div>" : "";
+    const mia = respondidas["x-" + e.id];
+    const correcta = !e.opciones ? "" : e.tipo === "escribir"
+      ? '<div class="caja">La palabra era: <b>' + esc(e.opciones[0]) + "</b>" + (mia != null && !(mio && mio.ok) ? '<br>Usted escribió: <s>' + esc(mia) + "</s>" : "") + (e.frase ? '<br><span class="ff">' + esc(e.frase) + "</span>" : "") + "</div>"
+      : '<div class="caja">La respuesta correcta era la <b>' + LETRAS[e.correcta] + "</b>: " + esc(e.opciones[e.correcta]) + (e.bien ? "<br>Bien escrita: <b>" + esc(e.bien) + "</b>" : "") + "</div>";
     let cab;
     apuntaResultado(e, mio);
     const cara = cl => AVATARES[yo.av] ? avatarHTML(yo.av, "enorme " + cl, yo.ac) : "";
@@ -10783,10 +10807,11 @@ function clasificacion(marcador) {
     '</span><span class="pt">' + m.p + "</span></li>").join("") + "</ol></div>";
 }
 
-async function responder(id, o) {
+async function responder(id, o, x) {
   if (respondidas[id] !== undefined) return;
-  respondidas[id] = o; graba(K + "-" + yo.codigo, respondidas); pinta();
-  try { await RED.poner(ruta("respuestas/" + id + "/" + yo.uid), { o, t: RED.AHORA }); }
+  respondidas[id] = o; if (x != null) respondidas["x-" + id] = x;
+  graba(K + "-" + yo.codigo, respondidas); pinta();
+  try { await RED.poner(ruta("respuestas/" + id + "/" + yo.uid), x != null ? { o, t: RED.AHORA, x } : { o, t: RED.AHORA }); }
   catch (e) {
     if (e.denegado) respondidas[id] = "tarde";
     else { delete respondidas[id]; alert("No se ha podido enviar la respuesta. Compruebe la conexión e inténtelo otra vez."); }
