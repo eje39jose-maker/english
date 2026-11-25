@@ -34,6 +34,9 @@ input:focus{border-color:var(--navy);outline:none}
 .grande{font-size:1.6rem;font-weight:800;margin:0}
 .icono{font-size:3.4rem;line-height:1}
 .num{color:var(--soft);font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:.85rem}
+/* «Pregunta 2 de 5» arriba del todo, y el resto centrado en el espacio que queda (así el avatar no la tapa al saltar) */
+.centro>.num:first-child{margin-bottom:auto}.centro:has(>.num:first-child)>:last-child{margin-bottom:auto}
+.icono:has(.ava.enorme){margin-top:2.2rem}
 .enun{font-size:1.25rem;font-weight:800;margin:6px 0 2px;overflow-wrap:anywhere}
 .pista{color:var(--soft);font-weight:600;margin:0 0 8px}
 .tiempo{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin:10px 0 14px}
