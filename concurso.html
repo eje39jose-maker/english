@@ -67,13 +67,23 @@ input:focus{border-color:var(--navy);outline:none}
 .red{position:fixed;left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));background:var(--bad);color:#fff;padding:10px 14px;border-radius:12px;font-weight:700;text-align:center}
 .qrb{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;border:2px solid var(--navy);background:var(--card);color:var(--ink);font-weight:800;border-radius:14px;padding:14px;font-size:1.1rem}
 .o{display:flex;align-items:center;gap:10px;color:var(--soft);font-size:.9rem;margin:16px 0 0}.o::before,.o::after{content:"";flex:1;border-top:1px solid var(--line)}
-.avs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.avs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;max-height:min(46vh,330px);overflow-y:auto;padding:3px;margin:-3px}
+.vista{display:flex;align-items:center;gap:14px;margin:4px 0 2px}.vista .ava{font-size:3.6rem}.vista p{margin:0;color:var(--soft);font-size:.95rem}
+.accs{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:6px}
+.accs button{aspect-ratio:1;border:2px solid var(--line);background:var(--card);border-radius:12px;font-size:1.5rem;line-height:1;padding:0;display:grid;place-items:center}
+.accs button[aria-pressed="true"]{border-color:var(--gold);border-width:3px;background:var(--gold-soft)}
+.accs .nada{font-size:.75rem;color:var(--soft);font-weight:700}
+.fons{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:6px}
+.fons button{aspect-ratio:1;border:2px solid var(--line);border-radius:50%;padding:0;font-size:.7rem;color:var(--soft);font-weight:700}
+.fons button[aria-pressed="true"]{outline:3px solid var(--gold);outline-offset:2px}
+@media (max-width:360px){.accs,.fons{grid-template-columns:repeat(5,minmax(0,1fr))}}
 .avs button{aspect-ratio:1;border:2px solid var(--line);background:var(--card);border-radius:14px;font-size:2.3rem;line-height:1;padding:0;display:grid;place-items:center;overflow:hidden}
 .avs button[aria-pressed="true"]{border-color:var(--gold);border-width:3px;background:var(--gold-soft)}
 .avs button[aria-pressed="true"] .ava{font-size:1.15em}
 @media (max-width:340px){.avs{grid-template-columns:repeat(5,minmax(0,1fr))}}
 .yo{font-size:2.1rem;line-height:1}
 .enorme{font-size:6.5rem}
+.icono .corona{font-size:3.4rem;margin-bottom:.3rem}.ava.mini{font-size:1.15em;vertical-align:-.15em}
 .botones{display:flex;flex-direction:column;gap:10px;width:100%;margin-top:14px}
 .botones .ghost{margin:0}
 #escaner{position:fixed;inset:0;z-index:20;background:#000;color:#fff;display:flex;flex-direction:column}
@@ -98,7 +108,12 @@ input:focus{border-color:var(--navy);outline:none}
       <label for="apodo">Apodo</label>
       <input id="apodo" maxlength="20" placeholder="Cómo quiere aparecer en la pantalla" required>
       <label id="avTit">Avatar</label>
+      <div class="vista"><span id="vistaAv"></span><p>Así le verán en la pantalla del aula. Puede ponerle un complemento y un color de fondo.</p></div>
       <div class="avs" id="avs" role="radiogroup" aria-labelledby="avTit"></div>
+      <label id="accTit">Complemento</label>
+      <div class="accs" id="accs" role="radiogroup" aria-labelledby="accTit"></div>
+      <label id="fonTit">Color de fondo</label>
+      <div class="fons" id="fons" role="radiogroup" aria-labelledby="fonTit"></div>
       <div id="cajaEq" hidden><label id="eqTit">Equipo</label><div class="eqs" id="eqs" role="radiogroup" aria-labelledby="eqTit"></div></div>
       <button class="go" id="bEntrar" type="submit">Entrar</button>
     </form>
@@ -126,14 +141,37 @@ input:focus{border-color:var(--navy);outline:none}
    AVATARES: dibujos que el alumnado elige al entrar; en la base de datos se guarda solo su número (jugadores/<uid>/av).
    Se pueden añadir al final, pero no cambiar de orden (las reglas admiten números de 0 a 99). */
 const AVATARES = ["🐶", "🐱", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🐧", "🦉", "🐢",
-  "🐙", "🦄", "🐲", "🦖", "🐳", "🦀", "🐝", "🦋", "🦔", "🦦", "🦩", "👽", "🤖", "👻", "🤠", "😎"];
+  "🐙", "🦄", "🐲", "🦖", "🐳", "🦀", "🐝", "🦋", "🦔", "🦦", "🦩", "👽", "🤖", "👻", "🤠", "😎",
+  "🐰", "🐹", "🐭", "🐺", "🦝", "🐴", "🦓", "🦒", "🐘", "🦈", "🐬", "🦜", "🐞"];   // 45: uno distinto para cada alumno
+/* COMPLEMENTOS y FONDOS: se eligen al entrar y se guardan juntos en jugadores/<uid>/ac = complemento × 10 + fondo
+   (las reglas admiten 0 a 99). Igual que los avatares: se pueden añadir al final, sin cambiar el orden. */
+const COMPLEMENTOS = [{ n: "Ninguno", e: "" }, { n: "Gorra", e: "🧢", p: "arriba" }, { n: "Gafas de sol", e: "🕶️", p: "ojos" }, { n: "Corona", e: "👑", p: "arriba" },
+  { n: "Sombrero", e: "🎩", p: "arriba" }, { n: "Lazo", e: "🎀", p: "lado" }, { n: "Birrete", e: "🎓", p: "arriba" }, { n: "Flor", e: "🌸", p: "lado" }, { n: "Cascos", e: "🎧", p: "cascos" }];
+const FONDOS = ["", "#ffc9c9", "#ffe08a", "#b9f0b9", "#b8dcff", "#dccbff", "#ffcf9e", "#a8ece4", "#3b465c"];
 /* EQUIPOS (modo equipos): en la base de datos se guarda solo el número (jugadores/<uid>/eq; las reglas admiten 0 a 9). */
 const EQUIPOS = [{ n: "Rojo", e: "🔴" }, { n: "Azul", e: "🔵" }, { n: "Verde", e: "🟢" }, { n: "Amarillo", e: "🟡" }, { n: "Morado", e: "🟣" }, { n: "Naranja", e: "🟠" }];
 /* Cada avatar tiene su movimiento (7 distintos) y empieza en un momento diferente, para que no se muevan todos a la vez.
    avatarHTML(n, clases): "quieto" lo deja sin movimiento. Respeta la opción del sistema «reducir movimiento». */
-function avatarHTML(n, clases) {
+function avatarHTML(n, clases, ac) {
   if (!AVATARES[n]) return "";
-  return '<span class="ava m' + (n % 7) + (clases ? " " + clases : "") + '" style="animation-delay:-' + ((n * 0.37) % 2).toFixed(2) + 's" aria-hidden="true">' + AVATARES[n] + "</span>";
+  const c = COMPLEMENTOS[Math.floor((ac || 0) / 10)] || COMPLEMENTOS[0], f = FONDOS[(ac || 0) % 10] || "";
+  return '<span class="ava m' + (n % 7) + (f ? " fondo" : "") + (clases ? " " + clases : "") + '" style="animation-delay:-' + ((n * 0.37) % 2).toFixed(2) + "s" + (f ? ";--avf:" + f : "") + '" aria-hidden="true">' +
+    AVATARES[n] + (c.e ? '<span class="acc ' + c.p + '">' + c.e + "</span>" : "") + "</span>";
+}
+/* Confeti (sin archivos): trocitos de colores que caen por toda la pantalla y se borran solos. */
+function confeti(cuantos) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const capa = document.createElement("div"), colores = ["#e03131", "#1c7ed6", "#2f9e44", "#f08c00", "#ae3ec9", "#f59f00", "#0ca678"];
+  capa.className = "confeti";
+  for (let i = 0; i < (cuantos || 60); i++) {
+    const t = document.createElement("i");
+    t.style.cssText = "left:" + (Math.random() * 100) + "%;background:" + colores[i % colores.length] + ";animation-delay:" + (Math.random() * 0.9).toFixed(2) + "s;animation-duration:" +
+      (2.2 + Math.random() * 1.6).toFixed(2) + "s;--giro:" + (Math.random() * 1080 - 540).toFixed(0) + "deg;--deriva:" + (Math.random() * 160 - 80).toFixed(0) + "px;" +
+      (i % 3 === 0 ? "width:7px;height:7px;border-radius:50%" : "");
+    capa.appendChild(t);
+  }
+  document.body.appendChild(capa);
+  setTimeout(() => capa.remove(), 4800);
 }
 (function estilosAvatar() {
   const s = document.createElement("style");
@@ -145,7 +183,19 @@ function avatarHTML(n, clases) {
     ".m4{animation:aTemblor 2s ease-in-out infinite}@keyframes aTemblor{0%,65%,100%{transform:translateX(0) rotate(0)}70%{transform:translateX(-10%) rotate(-10deg)}75%{transform:translateX(10%) rotate(10deg)}80%{transform:translateX(-10%) rotate(-8deg)}85%{transform:translateX(8%) rotate(6deg)}90%{transform:translateX(0) rotate(0)}}" +
     ".m5{animation:aFlotar 2.4s ease-in-out infinite}@keyframes aFlotar{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-16%) rotate(6deg)}}" +
     ".m6{animation:aEstira 1.3s ease-in-out infinite;transform-origin:50% 100%}@keyframes aEstira{0%,100%{transform:scale(1,1)}35%{transform:scale(1.2,.8)}60%{transform:scale(.88,1.15)}80%{transform:scale(1.04,.97)}}" +
-    ".ava.quieto{animation:none}@media (prefers-reduced-motion:reduce){.ava{animation:none!important}}";
+    ".ava.quieto{animation:none}" +
+    /* complementos encima del animal y color de fondo */
+    ".ava{position:relative}.ava.fondo{background:var(--avf);border-radius:50%;width:1.3em;height:1.3em;display:inline-grid;place-items:center;box-shadow:0 0 0 .04em rgba(0,0,0,.12)}" +
+    ".acc{position:absolute;line-height:1;pointer-events:none;left:50%;transform:translateX(-50%);font-size:.6em}" +
+    ".acc.arriba{top:-.42em}.ava.fondo .acc.arriba{top:-.3em}.acc.ojos{top:.22em;font-size:.62em}.ava.fondo .acc.ojos{top:.32em}" +
+    ".acc.lado{top:-.18em;left:84%}.acc.cascos{top:-.1em;font-size:1.05em;opacity:.95}.ava.fondo .acc.cascos{top:0}" +
+    /* reacciones: celebra al acertar, triste al fallar; corona del ganador */
+    ".ava.celebra{animation:aCelebra 1s ease-in-out 3!important;transform-origin:50% 100%}@keyframes aCelebra{0%,100%{transform:translateY(0) rotate(0) scale(1)}20%{transform:translateY(0) scale(1.15,.85)}50%{transform:translateY(-35%) rotate(-12deg) scale(1.05)}70%{transform:translateY(-10%) rotate(10deg)}}" +
+    ".ava.triste{animation:aTriste 2.2s ease-in-out infinite!important;filter:grayscale(.55) brightness(.92);transform-origin:50% 100%}@keyframes aTriste{0%,100%{transform:rotate(-7deg) translateY(4%)}50%{transform:rotate(7deg) translateY(8%)}}" +
+    ".corona{display:block;line-height:1;font-size:.55em;margin-bottom:-.15em;animation:aCorona 1.6s ease-in-out infinite}@keyframes aCorona{0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-14%) rotate(8deg)}}" +
+    ".confeti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:60}.confeti i{position:absolute;top:-16px;width:9px;height:14px;border-radius:2px;animation:aCae linear forwards}" +
+    "@keyframes aCae{to{transform:translate(var(--deriva),110vh) rotate(var(--giro))}}" +
+    "@media (prefers-reduced-motion:reduce){.ava,.corona{animation:none!important}}";
   document.head.appendChild(s);
 })();
 function crearRed(C) {
@@ -10452,13 +10502,22 @@ function repasoHTML() {
 }
 
 /* ---- avatar: se elige al entrar y se recuerda para la próxima partida ---- */
-let avatar = lee(K, {}).av;
+// (los avatares se pueden repetir: cada uno elige el que quiera)
+let festejo = null;   // para lanzar el confeti una sola vez
+let avatar = lee(K, {}).av, adorno = lee(K, {}).ac;   // adorno = complemento × 10 + fondo
 if (!(avatar >= 0 && avatar < AVATARES.length)) avatar = Math.floor(Math.random() * AVATARES.length);
+if (!(typeof adorno === "number" && adorno >= 0 && adorno <= 99)) adorno = 0;
+const accDe = () => Math.floor(adorno / 10) < COMPLEMENTOS.length ? Math.floor(adorno / 10) : 0, fonDe = () => adorno % 10 < FONDOS.length ? adorno % 10 : 0;
 function pintaAvatares() {
   // solo se mueve el elegido; los demás, quietos (así se ve claro cuál ha elegido)
   $("#avs").innerHTML = AVATARES.map((a, i) => '<button type="button" role="radio" data-av="' + i + '" aria-checked="' + (i === avatar) + '" aria-pressed="' + (i === avatar) + '" aria-label="Avatar ' + (i + 1) + '">' + avatarHTML(i, i === avatar ? "" : "quieto") + "</button>").join("");
+  $("#accs").innerHTML = COMPLEMENTOS.map((c, i) => '<button type="button" role="radio" data-acc="' + i + '" aria-checked="' + (i === accDe()) + '" aria-pressed="' + (i === accDe()) + '" aria-label="' + c.n + '" title="' + c.n + '">' + (c.e || '<span class="nada">Sin</span>') + "</button>").join("");
+  $("#fons").innerHTML = FONDOS.map((f, i) => '<button type="button" role="radio" data-fon="' + i + '" aria-checked="' + (i === fonDe()) + '" aria-pressed="' + (i === fonDe()) + '" aria-label="' + (f ? "Fondo " + i : "Sin fondo") + '" style="background:' + (f || "var(--card)") + '">' + (f ? "" : "Sin") + "</button>").join("");
+  $("#vistaAv").innerHTML = avatarHTML(avatar, "", adorno);
 }
 $("#avs").onclick = e => { const b = e.target.closest("button"); if (!b) return; avatar = +b.dataset.av; pintaAvatares(); };
+$("#accs").onclick = e => { const b = e.target.closest("button"); if (!b) return; adorno = +b.dataset.acc * 10 + fonDe(); pintaAvatares(); };
+$("#fons").onclick = e => { const b = e.target.closest("button"); if (!b) return; adorno = accDe() * 10 + +b.dataset.fon; pintaAvatares(); };
 
 async function entrar(codigo, apodo, silencioso) {
   if (!LISTO) { msg("El concurso todavía no está disponible.", true); return; }
@@ -10494,14 +10553,18 @@ async function entrar(codigo, apodo, silencioso) {
     }
     const jugador = "partidas/" + codigo + "/jugadores/" + s.uid;
     // con reglas de Firebase antiguas, sin equipo (el profesor lo asigna) y, si hace falta, sin avatar
-    const intentos = [Object.assign({ apodo, unido: RED.AHORA, av: avatar }, eq != null ? { eq } : {}), { apodo, unido: RED.AHORA, av: avatar }, { apodo, unido: RED.AHORA }];
+    // (y sin complemento si las reglas no lo admiten todavía)
+    const conEq = eq != null ? { eq } : {}, conAc = adorno ? { ac: adorno } : {};
+    const intentos = [Object.assign({ apodo, unido: RED.AHORA, av: avatar }, conEq, conAc), Object.assign({ apodo, unido: RED.AHORA, av: avatar }, conEq), { apodo, unido: RED.AHORA, av: avatar }, { apodo, unido: RED.AHORA }];
+    let sinAdorno = false;
     for (let k = 0; k < intentos.length; k++) {
-      if (k === 1 && eq == null) continue;
+      if ((k === 1 && !adorno) || (k === 2 && eq == null)) continue;
+      if (k >= 1 && adorno) sinAdorno = true;
       try { await RED.poner(jugador, intentos[k]); break; }
       catch (e) { if (!e.denegado || k === intentos.length - 1) throw e; }
     }
-    yo = { codigo, apodo, uid: s.uid, av: avatar, eq };
-    graba(K, Object.assign({ codigo, apodo, av: avatar }, eq != null ? { eq } : {}));
+    yo = { codigo, apodo, uid: s.uid, av: avatar, eq, ac: sinAdorno ? 0 : adorno };
+    graba(K, Object.assign({ codigo, apodo, av: avatar, ac: adorno }, eq != null ? { eq } : {}));
     $("#cajaEq").hidden = true;
     try { history.replaceState(null, "", location.pathname + "?c=" + codigo); } catch (e) {}  // si recarga, vuelve a esta partida
     respondidas = lee(K + "-" + codigo, {});
@@ -10640,13 +10703,13 @@ function pinta() {
   $("#cabApodo").textContent = yo.apodo;
   const miEq = mio && mio.e != null ? mio.e : yo.eq;
   $("#cabEq").textContent = miEq != null && EQUIPOS[miEq] ? EQUIPOS[miEq].e : "";
-  if ($("#cabAvatar").dataset.av !== String(yo.av)) { $("#cabAvatar").innerHTML = avatarHTML(yo.av); $("#cabAvatar").dataset.av = String(yo.av); }  // sin reiniciar el movimiento
+  if ($("#cabAvatar").dataset.av !== yo.av + "-" + (yo.ac || 0)) { $("#cabAvatar").innerHTML = avatarHTML(yo.av, "", yo.ac); $("#cabAvatar").dataset.av = yo.av + "-" + (yo.ac || 0); }  // sin reiniciar el movimiento
   $("#cabPuntos").textContent = mio ? mio.p + " puntos" : "";
   if (e.fase !== "pregunta") clearInterval(reloj);
   const num = e.n ? '<div class="num">Pregunta ' + e.n + " de " + e.total + (e.doble ? ' · <b class="x2">⭐ vale el doble</b>' : "") + "</div>" : "";
   J.className = "centro";
   if (e.fase === "sala") {
-    J.innerHTML = '<div class="icono">' + (AVATARES[yo.av] ? avatarHTML(yo.av, "enorme") : "✅") + '</div><p class="grande">¡Ya está dentro!</p><p class="msg">Su apodo aparece en la pantalla del aula. Espere a que empiece el concurso.</p>';
+    J.innerHTML = '<div class="icono">' + (AVATARES[yo.av] ? avatarHTML(yo.av, "enorme", yo.ac) : "✅") + '</div><p class="grande">¡Ya está dentro!</p><p class="msg">Su apodo aparece en la pantalla del aula. Espere a que empiece el concurso.</p>';
   } else if (e.fase === "doble") {
     J.innerHTML = num + '<div class="icono latido">⭐</div><p class="grande">¡Última pregunta!</p><p class="grande x2">Vale el doble</p>';
   } else if (e.fase === "escucha") {
@@ -10677,16 +10740,20 @@ function pinta() {
     const correcta = e.opciones ? '<div class="caja">La respuesta correcta era la <b>' + LETRAS[e.correcta] + "</b>: " + esc(e.opciones[e.correcta]) + (e.bien ? "<br>Bien escrita: <b>" + esc(e.bien) + "</b>" : "") + "</div>" : "";
     let cab;
     apuntaResultado(e, mio);
-    if (mio && mio.ok) cab = '<div class="icono">🎉</div><p class="grande ok">¡Correcto!</p><p class="msg">+' + mio.g + " puntos" + (e.doble ? " (×2)" : "") + "</p>" +
+    const cara = cl => AVATARES[yo.av] ? avatarHTML(yo.av, "enorme " + cl, yo.ac) : "";
+    if (festejo !== e.id && mio) { festejo = e.id; if (mio.ok) confeti(mio.b || e.doble ? 90 : 50); }   // una sola vez por pregunta
+    if (mio && mio.ok) cab = '<div class="icono">' + (cara("celebra") || "🎉") + '</div><p class="grande ok">¡Correcto!</p><p class="msg">+' + mio.g + " puntos" + (e.doble ? " (×2)" : "") + "</p>" +
       (mio.b ? '<p class="racha">🔥 ' + mio.rc + " seguidas: +" + mio.b + " de racha</p>" : "");
-    else if (mio && mio.r) cab = '<div class="icono">❌</div><p class="grande mal">No es correcta</p>';
-    else cab = '<div class="icono">⏱️</div><p class="grande">Sin respuesta</p>';
+    else if (mio && mio.r) cab = '<div class="icono">' + (cara("triste") || "❌") + '</div><p class="grande mal">No es correcta</p>';
+    else cab = '<div class="icono">' + (cara("triste") || "⏱️") + '</div><p class="grande">Sin respuesta</p>';
     J.innerHTML = num + cab + correcta + (mio ? '<p class="msg">Va en el puesto <b>' + mio.s + "</b> de " + (e.participantes || "?") + "</p>" : "");
   } else if (e.fase === "repaso") {
     J.innerHTML = '<div class="icono">📖</div><p class="grande">Repaso</p><p class="msg">Mire la pantalla del aula: se comentan las preguntas más falladas. Enseguida, el podio.</p>' + repasoHTML();
   } else if (e.fase === "final") {
     const med = mio ? ["🥇", "🥈", "🥉"][mio.s - 1] || "🏁" : "🏁";
-    J.innerHTML = '<div class="icono">' + med + '</div><p class="grande">¡Concurso terminado!</p>' +
+    if (festejo !== "final" && mio) { festejo = "final"; if (mio.s <= 3) confeti(mio.s === 1 ? 140 : 80); }
+    const yoAv = AVATARES[yo.av] ? '<div class="icono">' + (mio && mio.s === 1 ? '<span class="corona">👑</span>' : "") + avatarHTML(yo.av, "enorme" + (mio && mio.s <= 3 ? " celebra" : ""), yo.ac) + "</div>" : "";
+    J.innerHTML = yoAv + '<div class="icono">' + med + '</div><p class="grande">¡Concurso terminado!</p>' +
       (mio ? '<p class="msg">Ha quedado en el puesto <b>' + mio.s + "</b> de " + (e.participantes || "?") + " con <b>" + mio.p + "</b> puntos.</p>" : "") +
       equipoFinal(pub.marcador, mio) + clasificacion(pub.marcador || {}) + repasoHTML() + botonesOtra();
     activaOtra();
@@ -10709,7 +10776,7 @@ function clasificacion(marcador) {
   const lista = Object.entries(marcador).sort((a, b) => (a[1].s - b[1].s) || (b[1].p - a[1].p));
   if (!lista.length) return "";
   return '<div class="caja clasif"><h3>Clasificación final</h3><ol>' + lista.map(([u, m]) =>
-    '<li' + (u === yo.uid ? ' class="yo"' : "") + '><span class="pos">' + m.s + '.</span><span class="ap">' + esc(m.a) +
+    '<li' + (u === yo.uid ? ' class="yo"' : "") + '><span class="pos">' + m.s + '.</span><span class="ap">' + (AVATARES[m.v] ? avatarHTML(m.v, "quieto mini", m.c) + " " : "") + esc(m.a) +
     '</span><span class="pt">' + m.p + "</span></li>").join("") + "</ol></div>";
 }
 
