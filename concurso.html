@@ -144,6 +144,7 @@ input:focus{border-color:var(--navy);outline:none}
    - escuchar(ruta, alCambiar, alConectar): mantiene una copia local del valor de la ruta con un EventSource
      (eventos put/patch) y la entrega entera en cada cambio. Se reconecta solo y renueva la sesión al caducar.
    - AHORA: marca de tiempo del servidor ({".sv":"timestamp"}).
+   - borrarAlSalir(ruta): DELETE con sendBeacon, para cuando se cierra la página.
    AVATARES: dibujos que el alumnado elige al entrar; en la base de datos se guarda solo su número (jugadores/<uid>/av).
    Se pueden añadir al final, pero no cambiar de orden (las reglas admiten números de 0 a 99). */
 const AVATARES = ["🐶", "🐱", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🐧", "🦉", "🐢",
@@ -155,6 +156,10 @@ const COMPLEMENTOS = [{ n: "Ninguno", e: "" }, { n: "Gorra", e: "🧢", p: "arri
   { n: "Sombrero", e: "🎩", p: "arriba" }, { n: "Lazo", e: "🎀", p: "lado" }, { n: "Birrete", e: "🎓", p: "arriba" }, { n: "Flor", e: "🌸", p: "lado" }, { n: "Cascos", e: "🎧", p: "cascos" }];
 const FONDOS = ["", "#ffc9c9", "#ffe08a", "#b9f0b9", "#b8dcff", "#dccbff", "#ffcf9e", "#a8ece4", "#3b465c"];
 /* EQUIPOS (modo equipos): en la base de datos se guarda solo el número (jugadores/<uid>/eq; las reglas admiten 0 a 9). */
+/* PLAZAS: el plan gratuito de Firebase (Spark) admite 100 conexiones a la vez para TODAS las aulas juntas (cada móvil
+   dentro de una partida y cada pantalla del profesor = 1). Cada partida reserva RESERVA_PLAZAS al crearse (unos 42
+   alumnos por clase + margen) y las pantallas del profesor lo ven en ocupacion/. Con el plan Blaze: 200000. */
+const LIMITE_CONEXIONES = 100, RESERVA_PLAZAS = 45;
 const EQUIPOS = [{ n: "Rojo", e: "🔴" }, { n: "Azul", e: "🔵" }, { n: "Verde", e: "🟢" }, { n: "Amarillo", e: "🟡" }, { n: "Morado", e: "🟣" }, { n: "Naranja", e: "🟠" }];
 /* Cada avatar tiene su movimiento (7 distintos) y empieza en un momento diferente, para que no se muevan todos a la vez.
    avatarHTML(n, clases): "quieto" lo deja sin movimiento. Respeta la opción del sistema «reducir movimiento». */
@@ -269,6 +274,8 @@ function crearRed(C) {
     }
     const e = new Error(msg); e.status = r.status;
     e.denegado = r.status === 401 || r.status === 403 || /permission/i.test(msg);
+    // límite de conexiones a la vez del plan gratuito (sin verificar con el Firebase real: se reconoce por el texto o el código)
+    e.lleno = r.status === 429 || /max(imum)?[ _-]*(simultaneous[ _-]*)?connect|too many (connections|requests)|connection limit/i.test(msg);
     throw e;
   }
 
@@ -328,7 +335,12 @@ function crearRed(C) {
   return {
     sesion, uid: () => (ses && ses.uid) || null, AHORA: { ".sv": "timestamp" }, escuchar,
     leer: r => pedir("GET", r), poner: (r, v) => pedir("PUT", r, v), actualizar: (r, v) => pedir("PATCH", r, v),
-    borrar: r => pedir("DELETE", r)
+    borrar: r => pedir("DELETE", r),
+    // al cerrar la página: borrado «a ciegas» (sendBeacon sigue aunque la página se cierre). Solo con una sesión vigente.
+    borrarAlSalir(r) {
+      if (!ses || !ses.idToken || ses.caduca < Date.now() || !navigator.sendBeacon) return false;
+      try { return navigator.sendBeacon(BD + "/" + r + ".json?auth=" + encodeURIComponent(ses.idToken) + "&x-http-method-override=DELETE", ""); } catch (e) { return false; }
+    }
   };
 }
 
@@ -10583,7 +10595,8 @@ async function entrar(codigo, apodo, silencioso) {
     mantenDespierto();
   } catch (e) {
     if (e.definitivo) { const g = lee(K, {}); if (g.codigo === codigo) { delete g.codigo; graba(K, g); } }   // olvidar esa partida
-    if (!silencioso) msg(e.denegado ? "No se ha podido entrar en la partida." : e.message, true);
+    if (!silencioso) msg(e.lleno ? "En este momento no hay conexiones disponibles. Avise al profesor y pruebe otra vez dentro de un momento."
+      : e.denegado ? "No se ha podido entrar en la partida." : e.message, true);
     else msg("");
   } finally { $("#bEntrar").disabled = false; }
 }
